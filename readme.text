@@ -1,0 +1,187 @@
+This is the readme for Common Music 3. 
+
+  1. Applications
+  2. Dependancies
+  3. Building
+  4. CM in Emacs
+  5. SVN Access
+
+==========================================================================
+                               APPLICATIONS
+==========================================================================
+
+The CM source tree builds two different applications:
+
+Grace (Graphical Realtime Algorithmic Composition Environment) 
+
+   A drag-and-drop GUI with embedded Scheme interpreter (Sndlib/S7),
+   code editor, data plotter and realtime connections to various
+   packages such as MIDI, OSC, CLM, Csound, Fomus and SDIF.
+
+cm 
+
+   A console version of Grace that you can run in the Terminal or as
+   an 'inferior process' under Emacs (see section 4 below).
+
+==========================================================================
+                               DEPENDENCIES                               
+==========================================================================
+
+1. Premake 3.7 available at:
+
+  http://premake.sourceforge.net/download
+
+2. SndLib with S7 Scheme, available at:
+
+  ftp://ccrma-ftp.stanford.edu/pub/Lisp/sndlib.tar.gz
+
+3. (LINUX) the following packages must be installed: 
+
+  sudo apt-get install g++ libx11-dev libasound2-dev libfreetype6-dev libxinerama-dev libglu1-mesa-dev libxcursor-dev libjack-dev
+  (add libboost-dev if you are going to build Fomus)
+
+OPTIONAL
+
+4. Fomus available at:
+
+  http://fomus.sourceforge.net/
+
+5. Liblo (OSC) available at:
+
+  http://liblo.sourceforge.net/
+
+6. SDIF available at:
+
+  http://sdif.sourceforge.net/
+
+==========================================================================
+                                 BUILDING                                 
+==========================================================================
+
+Use premake to create your make files and then make the targets. For
+example this is how I build the basic system on my mac:
+
+  $ premake --verbose --target gnu --sndlib ../sndlib
+  $ make
+
+And this is how I build the complete system (with Fomus and OSC)
+
+  $ premake --verbose --target gnu --sndlib ../sndlib --liblo ../liblo-0.26 --fomus /usr/local
+  $ make
+
+You MUST specify a --target option (either gnu or vs2008) and a --sndlib
+installation directory that contains the libsndlib.a
+
+Executables are saved in bin/:
+
+  bin/cm                      console app    
+  bin/Grace                   gui app
+
+EXAMPLE: BUILDING SNDLIB AND CM FROM SOURCES ON OSX AND LINUX
+
+  rm -rf sndlib
+  curl -o sndlib.tar.gz ftp://ccrma-ftp.stanford.edu/pub/Lisp/sndlib.tar.gz
+  tar -zxf sndlib.tar.gz
+  rm sndlib.tar.gz
+  cd sndlib
+  ./configure CC=g++
+  make
+  cd ..
+  rm -rf cm
+  svn co http://commonmusic.svn.sf.net/svnroot/commonmusic/trunk cm
+  cd cm
+  premake --verbose --target gnu --sndlib  ../sndlib
+  make
+
+EXAMPLE: BUILDING SNDLIB AND CM FROM SOURCES ON WINDOWS
+
+  These instructions assume you already have Microsoft Visual Studio
+  Express C++ 2008 installed on your computer. Its easiest if you
+  create a common folder to hold the source trees for CM and SndLib.
+  I created a C:\Software directory to hold both systems on my
+  machine:
+
+        C:\Software\sndlib 
+        C:\Software\cm 
+
+  1. Download and install the latest version of SndLib: 
+  ftp://ccrma-ftp.stanford.edu/pub/Lisp/sndlib.tar.gz 
+
+  2. Double-click 'sndlib.vcproj' to open the project in Visual Studio
+  and choose 'Build Solution' from the Build menu (or press F7). This
+  should compile the release version of the sndlib library.
+
+  3. Download and install Premake 3.7, make sure that the executable
+  is on your PATH variable:
+  http://downloads.sourceforge.net/premake/premake-win32-3.7.zip
+
+  4. Download and install the latest Common Music sources from the svn
+  repository. The svn command to do this is:
+  svn co http://commonmusic.svn.sf.net/svnroot/commonmusic/trunk cm
+
+  5. Open a Windows CMD shell (terminal) by selecting Run... from the
+  Start menu and click OK.
+
+  6. In the terminal window, change directories to your CM directory
+  and use premake to create the Visual Studio project files: 
+    $ cd \Software\cm 
+    $ premake --target vs2008 --sndlib ../sndlib
+
+  7. Double click the file 'cm.sln' , select the RELEASE configuration
+  in the pulldown menu and press F7.
+
+EXAMPLE: BUILDING A STATIC, UNINSTALLED LIBLO and CM
+
+    $ cd liblo-0.26
+    $ ./configure --enable-static=yes --enable-shared=no
+    $ make
+    $ cd ../cm
+    $ premake --verbose --target gnu --sndlib ../sndlib --liblo ../liblo
+    $ make
+
+EXAMPLE: BUILDING A STATIC UNINSTALLED SDIF and CM
+
+    $ cd sdif
+    $ wget http://sourceforge.net/projects/sdif/files/sdif/SDIF-3.11.2/SDIF-3.11.2-src.zip
+    $ unzip SDIF-3.11.2-src.zip
+    $ cd SDIF-3.11.2-src
+    $ ./configure --prefix=/home/hkt/Software/sdif --enable-static=yes --enable-shared=no --enable-pthreads=no
+    $ make
+    $ make install
+    $ cd ../../cm
+    $ premake --verbose --target gnu --sndlib ../sndlib --sdif ../sdif
+    $ make
+
+==========================================================================
+                                 CM IN EMACS                             
+==========================================================================
+
+bin/cm is a console app that can be used as an inferior scheme process
+in Emacs.  Add this snippet to your .emacs file and fix 'cm-path' for
+your machine. Then restart emacs and start CM by doing: M-x: cm
+
+;-----------------------------------------------------------------------
+
+(defvar cm-path "~/Software/cm/") ; FIX pathname for your machine
+(require 'scheme)
+(load (concat cm-path "res/etc/sal.el"))
+(let ((spec '("definstrument" "loop" "process" "run" "send")))
+  (font-lock-add-keywords 'scheme-mode
+    (list (cons (concat "(" (regexp-opt spec t) "\\>") 1))))
+(defun cm (path)
+  "Start CM"
+  (interactive (list (if prefix-arg
+			 (read-string "Command to start CM: " "cm") 
+		       (concat cm-path "bin/cm"))))
+  (run-scheme path))
+
+
+==========================================================================
+                                SVN ACCESS                                
+==========================================================================
+
+To download the svn tip of Common Music type the following command (all
+one line) in your terminal window:
+
+svn co http://commonmusic.svn.sourceforge.net/svnroot/commonmusic/trunk cm
+
